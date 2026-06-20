@@ -1,0 +1,81 @@
+name: CI — Integración Continua
+
+on:
+  push:
+    branches: [ 'main', 'develop' ]
+  pull_request:
+    branches: [ 'main' ]
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  # Job 1: Instalar dependencias de forma segura
+  install:
+    name: Instalar dependencias
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      - name: Instalar paquetes
+        run: npm ci
+
+  # Job 2: Análisis estático de calidad de código
+  lint:
+    name: Análisis estático (ESLint)
+    runs-on: ubuntu-latest
+    needs: install
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      - run: npm ci
+      - name: Ejecutar ESLint
+        run: npm run lint -- --max-warnings 0
+
+  # Job 3: Pruebas unitarias con umbral del 80%
+  test:
+    name: Pruebas unitarias y cobertura
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      - run: npm ci
+      - name: Ejecutar pruebas con Jest
+        run: npm test -- --coverage --coverageThreshold='{"global":{"lines":80}}'
+      - name: Publicar reporte de cobertura
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+
+  # Job 4: Compilación y almacenamiento del artefacto seguro
+  build:
+    name: Compilar artefacto
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      - run: npm ci
+      - name: Build de producción
+        run: npm run build
+      - name: Guardar artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ github.sha }}
+          path: dist/
+          retention-days: 7
