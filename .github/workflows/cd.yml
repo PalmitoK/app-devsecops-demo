@@ -1,0 +1,98 @@
+name: CD — Despliegue Continuo
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'   # Se activa solo con etiquetas de versión (ejemplo: v1.0.0, v2.1.0)
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+permissions:
+  contents: read
+  packages: write         # Requerido para publicar imágenes en GitHub Packages (GHCR)
+  security-events: write  # Requerido para publicar reportes de Trivy en la pestaña Security
+
+jobs:
+  # Etapa 1: Construcción y Análisis de la Imagen
+  build-and-scan:
+    name: Build, Scan y Publicar Imagen
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      # Construimos la imagen de Docker localmente en el runner
+      - name: Construir imagen Docker local
+        run: docker build -t app-demo:${{ github.sha }} .
+
+      # Escaneamos la imagen construida con Trivy buscando fallas en Linux Alpine o Node.js
+      - name: Escanear con Trivy (Container Scanning)
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          image-ref: 'app-demo:${{ github.sha }}'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'          # ¡Súper importante! Rompe el pipeline si encuentra vulnerabilidades críticas o altas
+          ignore-unfixed: true    # Ignora vulnerabilidades que aún no tienen parche oficial para evitar falsos positivos
+
+      # Publicamos el reporte de Trivy en la pestaña de Seguridad de GitHub
+      - name: Publicar reporte de Trivy
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()             # Corre este paso incluso si el escaneo falló, para ver los resultados
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      # Si el escaneo pasa con éxito, nos logueamos en el Registro de GitHub
+      - name: Login a GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Generamos etiquetas y metadatos limpios para producción
+      - name: Extraer metadatos de la imagen
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=sha,prefix=sha-
+
+      # Subimos la imagen final a nuestro perfil de GitHub de forma privada y segura
+      - name: Publicar imagen en GHCR
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          provenance: true        # Genera un SBOM (Software Bill of Materials) para verificar el origen
+
+  # Etapa 2: Simulación de Despliegue en Staging
+  deploy-staging:
+    name: Desplegar en Staging
+    runs-on: ubuntu-latest
+    needs: build-and-scan
+    environment: staging
+    steps:
+      - name: Deploy a staging
+        run: |
+          echo "Desplegando de forma segura en ambiente de pruebas (Staging)..."
+          echo "Versión: ${{ github.ref_name }}"
+
+  # Etapa 3: Despliegue en Producción (Bajo Aprobación Manual)
+  deploy-production:
+    name: Desplegar en Producción
+    runs-on: ubuntu-latest
+    needs: deploy-staging
+    environment: production   # Este entorno solicitará aprobación manual antes de correr
+    steps:
+      - name: Deploy a producción
+        run: |
+          echo "Desplegando de forma segura en ambiente de Producción..."
+          echo "Versión: ${{ github.ref_name }}"
