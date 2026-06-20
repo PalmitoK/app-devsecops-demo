@@ -1,0 +1,20 @@
+version: 2
+updates:
+  # Monitorear dependencias del proyecto (npm)
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '08:00'
+      timezone: 'America/Santiago'
+    open-pull-requests-limit: 5
+    labels:
+      - 'dependencias'
+      - 'seguridad'
+
+  # Monitorear las propias GitHub Actions utilizadas en los workflows
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
