@@ -16,12 +16,13 @@ RUN npm ci --only=production
 COPY . .
 RUN npm run build
 
-RUN apk update && apk upgrade --no-cache
 # ─────────────────────────────────────────────────────────────────
 # ETAPA 2: Runtime (Ejecución en producción)
 # Usamos una imagen limpia y pequeña, sin compiladores ni código extra
 # ─────────────────────────────────────────────────────────────────
 FROM node:20-alpine AS runtime
+
+RUN apk update && apk upgrade --no-cache
 
 # Crear un grupo y un usuario de sistema sin privilegios (no usar root)
 RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
