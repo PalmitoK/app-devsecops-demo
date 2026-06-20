@@ -29,7 +29,7 @@ jobs:
 
       # Escaneamos la imagen construida con Trivy buscando fallas en Linux Alpine o Node.js
       - name: Escanear con Trivy (Container Scanning)
-        uses: aquasecurity/trivy-action@0.24.0
+        uses: aquasecurity/trivy-action@v0.24.0
         with:
           image-ref: 'app-demo:${{ github.sha }}'
           format: 'sarif'
@@ -41,7 +41,7 @@ jobs:
       # Publicamos el reporte de Trivy en la pestaña de Seguridad de GitHub
       - name: Publicar reporte de Trivy
         uses: github/codeql-action/upload-sarif@v3
-        if: always()             # Corre este paso incluso si el escaneo falló, para ver los resultados
+        if: always()             
         with:
           sarif_file: 'trivy-results.sarif'
 
