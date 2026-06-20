@@ -16,6 +16,7 @@ RUN npm ci --only=production
 COPY . .
 RUN npm run build
 
+RUN apk update && apk upgrade --no-cache
 # ─────────────────────────────────────────────────────────────────
 # ETAPA 2: Runtime (Ejecución en producción)
 # Usamos una imagen limpia y pequeña, sin compiladores ni código extra
