@@ -13,7 +13,7 @@ permissions:
   security-events: write   # Permiso obligatorio para escribir reportes en la pestaña Security de GitHub
 
 jobs:
-  # 🔍 Capa 1: SAST - Análisis de código estático con CodeQL
+  # Capa 1: SAST - Análisis de código estático con CodeQL
   codeql:
     name: SAST — CodeQL
     runs-on: ubuntu-latest
@@ -37,7 +37,7 @@ jobs:
         with:
           category: '/language:javascript-typescript'
 
-  # 📦 Capa 2: SCA - Auditoría de dependencias con npm audit
+  # Capa 2: SCA - Auditoría de dependencias con npm audit
   sca-npm:
     name: SCA — npm audit
     runs-on: ubuntu-latest
@@ -56,7 +56,7 @@ jobs:
       - name: Auditoría de dependencias
         run: npm audit --audit-level=high # El pipeline fallará solo ante vulnerabilidades de nivel Alto o Crítico
 
-  # 🔑 Capa 3: Secret Scanning - Escaneo de credenciales con Gitleaks
+  # Capa 3: Secret Scanning - Escaneo de credenciales con Gitleaks
   gitleaks:
     name: Secret Scanning — Gitleaks
     runs-on: ubuntu-latest
