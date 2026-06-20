@@ -1,8 +1,7 @@
 # ─────────────────────────────────────────────────────────────────
-# ETAPA 1: Build (Compilación)
-# Usamos una imagen de Node completa solo para construir el proyecto
+# ETAPA 1: Build (Compilación) - Solo para construir el proyecto
 # ─────────────────────────────────────────────────────────────────
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
@@ -17,11 +16,11 @@ COPY . .
 RUN npm run build
 
 # ─────────────────────────────────────────────────────────────────
-# ETAPA 2: Runtime (Ejecución en producción)
-# Usamos una imagen limpia y pequeña, sin compiladores ni código extra
+# ETAPA 2: Runtime (Ejecución en producción) - IMAGEN FINAL SEGURA
 # ─────────────────────────────────────────────────────────────────
-FROM node:20-alpine AS runtime
+FROM node:22-alpine AS runtime
 
+# El parche de seguridad del sistema operativo Alpine
 RUN apk update && apk upgrade --no-cache
 
 # Crear un grupo y un usuario de sistema sin privilegios (no usar root)
